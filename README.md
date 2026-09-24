@@ -13,7 +13,7 @@ There are two easy ways to start the presentation locally:
    ./start_presentation.sh
    ```
 3. Open your web browser and navigate to: **http://localhost:8080/pitch.html**
-4. When you are finished, press `Ctrl+C` in the terminal to stop the server.
+4. When you are finished, press `Ctrl+C` in the terminal to stop the server
 
 ### Option 2: Using Python directly
 If you prefer not to use the script, you can start Python's built-in HTTP server directly:
