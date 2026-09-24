@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signy — Sign Language Translator</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #6C63FF;
+            --accent-light: #8B83FF;
+            --accent-glow: rgba(108, 99, 255, 0.3);
+            --green: #00D68F;
+            --red: #FF6B6B;
+            --orange: #FFA94D;
+            --bg-dark: #0a0a1a;
+            --bg-card: rgba(255, 255, 255, 0.05);
+            --text-dim: #8892b0;
+        }
+
+        .reveal { font-family: 'Inter', sans-serif; font-size: 32px; color: #ccd6f6; }
+        .reveal .slides { text-align: left; }
+        .reveal h1, .reveal h2, .reveal h3 { font-family: 'Inter', sans-serif; font-weight: 800; text-transform: none; letter-spacing: -0.02em; color: #e6f1ff; }
+        .reveal h1 { font-size: 2.8em; line-height: 1.1; }
+        .reveal h2 { font-size: 1.8em; line-height: 1.2; margin-bottom: 0.6em; }
+        .reveal p, .reveal li { font-weight: 300; line-height: 1.6; font-size: 0.78em; }
+        .reveal ul { list-style: none; padding-left: 0; }
+        .reveal ul li { padding: 0.2em 0; padding-left: 1.4em; position: relative; }
+        .reveal ul li::before { content: '▸'; color: var(--accent); position: absolute; left: 0; font-weight: 700; }
+
+        /* Typography & Utilities */
+        .accent { color: var(--accent-light); font-weight: 600; }
+        .green { color: var(--green); font-weight: 600; }
+        .red { color: var(--red); font-weight: 600; }
+        .dim { color: var(--text-dim); }
+        .section-label { font-size: 0.6em; text-transform: uppercase; letter-spacing: 0.2em; color: var(--accent); font-weight: 700; margin-bottom: 0.5em; }
+
+        /* Title Slide */
+        .title-slide { text-align: center !important; }
+        .title-slide h1 { font-size: 4em; background: linear-gradient(135deg, #6C63FF, #00D68F); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.1em; }
+        .title-slide .subtitle { font-size: 1.1em; color: var(--text-dim); font-weight: 300; margin-bottom: 1.5em; }
+        
+        /* Cards */
+        .card { background: var(--bg-card); border: 1px solid rgba(108, 99, 255, 0.2); border-radius: 16px; padding: 1.2em 1.5em; backdrop-filter: blur(10px); }
+        .card.highlight { border-color: var(--accent); box-shadow: 0 0 30px var(--accent-glow); }
+        
+        /* Grids */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; align-items: start; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8em; align-items: start; }
+
+        /* Emotion Row */
+        .emotion-row { display: flex; align-items: center; gap: 0.5em; margin: 0.4em 0; font-size: 0.75em; }
+        .emotion-row .emoji { font-size: 1.8em; }
+        .emotion-row .arrow-txt { color: var(--accent); font-weight: 600; }
+        .emotion-row .result { font-style: italic; color: #e6f1ff; }
+
+        /* Highlight Box */
+        .highlight-box { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(0,214,143,0.1)); border-left: 4px solid var(--accent); padding: 0.8em 1.2em; border-radius: 0 12px 12px 0; margin: 0.8em 0; font-size: 0.8em; }
+
+        /* --- BIG PIPELINE GRAPHIC --- */
+        .pipeline-container { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 1.5em; gap: 0.5em; }
+        .pl-box { background: rgba(255,255,255,0.05); border: 2px solid rgba(108, 99, 255, 0.4); border-radius: 16px; padding: 1em 0.5em; text-align: center; width: 22%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: transform 0.3s ease; }
+        .pl-box:hover { transform: translateY(-5px); border-color: var(--accent-light); }
+        .pl-box.accent-box { border-color: var(--green); background: rgba(0, 214, 143, 0.05); }
+        .pl-box.orange-box { border-color: var(--orange); background: rgba(255, 169, 77, 0.05); }
+        .pl-icon { font-size: 2.2em; display: block; margin-bottom: 0.2em; }
+        .pl-title { font-weight: 800; font-size: 0.75em; color: #fff; margin-bottom: 0.4em; line-height: 1.1; }
+        .pl-desc { font-size: 0.5em; color: var(--text-dim); line-height: 1.4; }
+        .pl-arrow { color: var(--accent); font-size: 1.5em; font-weight: 900; }
+        
+        .pl-stack { display: flex; flex-direction: column; gap: 0.8em; width: 25%; }
+        .pl-stack .pl-box { width: 100%; padding: 0.8em 0.5em; }
+        .pl-stack .pl-icon { font-size: 1.6em; }
+
+        .end-slide { text-align: center !important; }
+    </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============================================ -->
+<!-- SLIDE 1: Title -->
+<section class="title-slide" data-background-color="#0a0a1a">
+    <span style="font-size: 3em; display: block; margin-bottom: 0.2em;">🤟</span>
+    <h1>Signy</h1>
+    <div class="subtitle">
+        Gebärdensprache in Echtzeit übersetzen<br>
+        <span class="dim" style="font-size:0.7em">1.5 Jahre · 5 Personen · SYP4</span>
+    </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 2: Problem -->
+<section data-background-color="#0a0a1a">
+    <div class="section-label">Das Problem</div>
+    <h2>Kommunikation darf keine<br><span class="accent">Barriere</span> sein</h2>
+    <div class="grid-2">
+        <div class="card">
+            <div style="font-size:2em; margin-bottom:0.2em">🧏</div>
+            <p style="font-size:0.72em; margin:0">Rund <span class="accent">10.000 gehörlose</span> Menschen leben in Österreich. Gebärdensprache ist ihre Muttersprache — doch kaum Hörende beherrschen sie.</p>
+        </div>
+        <div class="card">
+            <div style="font-size:2em; margin-bottom:0.2em">🚧</div>
+            <p style="font-size:0.72em; margin:0">Alltägliche Situationen werden zur <span class="red">Hürde</span>. Dolmetscher sind teuer und im Alltag nicht immer verfügbar.</p>
+        </div>
+    </div>
+    <div class="highlight-box" style="margin-top:1em">
+        💡 <strong>Was wäre, wenn dein Smartphone für dich dolmetschen könnte?</strong>
+    </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 3: The Pipeline Graphic -->
+<section data-background-color="#0a0a1a">
+    <div class="section-label">Die Technologie</div>
+    <h2>Von der Bewegung zum <span class="green">Satz</span></h2>
+    
+    <div class="pipeline-container">
+        <!-- 1. Tracking -->
+        <div class="pl-box">
+            <span class="pl-icon">🖐️</span>
+            <div class="pl-title">Motion Tracking</div>
+            <div class="pl-desc">MediaPipe scannt<br>543 Landmarks<br>(30 FPS auf Mobile)</div>
+        </div>
+        
+        <div class="pl-arrow">→</div>
+        
+        <!-- 2. AI Split (Gebärden + Emotion) -->
+        <div class="pl-stack">
+            <div class="pl-box accent-box">
+                <span class="pl-icon">🧠</span>
+                <div class="pl-title">Gebärden-KI</div>
+                <div class="pl-desc">1D-CNN erkennt das Zeichen (Gloss)</div>
+            </div>
+            <div class="pl-box accent-box">
+                <span class="pl-icon">🎭</span>
+                <div class="pl-title">Emotions-KI</div>
+                <div class="pl-desc">Blendshapes erkennen Mimik & Fragen</div>
+            </div>
+        </div>
+        
+        <div class="pl-arrow">→</div>
+        
+        <!-- 3. NLP -->
+        <div class="pl-box orange-box">
+            <span class="pl-icon">💬</span>
+            <div class="pl-title">Satz-Generator</div>
+            <div class="pl-desc">KI wandelt Glosses + Emotion in korrekte Grammatik um</div>
+        </div>
+        
+        <div class="pl-arrow">→</div>
+        
+        <!-- 4. Output -->
+        <div class="pl-box" style="border-color:#fff;">
+            <span class="pl-icon">📝</span>
+            <div class="pl-title">Output</div>
+            <div class="pl-desc">Deutscher Text<br>oder Sprachausgabe</div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 4: Emotion Demo -->
+<section data-background-color="#0a0a1a">
+    <div class="section-label">Die Innovation</div>
+    <h2>Mehr als nur <span class="accent">Wörter</span></h2>
+    
+    <p style="font-size: 0.7em; margin-bottom:0.5em;">Gleiche Gebärde (ICH · HAUSAUFGABE · VERGESSEN), völlig andere Bedeutung durch Mimik:</p>
+
+    <div class="card highlight" style="margin: 0.8em 0; padding: 1em;">
+        <div class="emotion-row fragment" data-fragment-index="1">
+            <span class="emoji">😐</span> <span class="arrow-txt">neutral →</span>
+            <span class="result">"Ich habe meine Hausaufgaben vergessen."</span>
+        </div>
+        <div class="emotion-row fragment" data-fragment-index="2" style="margin-top: 0.8em;">
+            <span class="emoji">😢</span> <span class="arrow-txt">traurig →</span>
+            <span class="result">"Ich habe <span class="accent">leider</span> meine Hausaufgaben vergessen..."</span>
+        </div>
+        <div class="emotion-row fragment" data-fragment-index="3" style="margin-top: 0.8em;">
+            <span class="emoji">😰</span> <span class="arrow-txt">Augenbrauen hoch →</span>
+            <span class="result">"<span class="accent">Habe ich etwa</span> meine Hausaufgaben vergessen<span class="accent">?!</span>"</span>
+        </div>
+    </div>
+    <div class="highlight-box fragment" data-fragment-index="4">
+        🧠 Die Gesichtsmimik (Non-Manual-Marker) ist <strong>die Grammatik</strong> der Gebärdensprache. Signy erkennt beides.
+    </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 5: Strategy / MVP -->
+<section data-background-color="#0a0a1a">
+    <div class="section-label">Strategie (1,5 Jahre)</div>
+    <h2>Unser <span class="green">Fokus</span></h2>
+    <div class="grid-2">
+        <div class="card">
+            <h3 style="font-size:0.85em; margin-top:0">🛠️ 1. Proof of Concept</h3>
+            <ul style="font-size:0.62em">
+                <li>Wir starten mit <strong>ASL oder DGS</strong> (große öffentliche Datensätze)</li>
+                <li>Fokus auf eine funktionierende, flüssige Mobile-App</li>
+                <li>Integrierte Mimik- und Emotionserkennung</li>
+            </ul>
+        </div>
+        <div class="card highlight">
+            <h3 style="font-size:0.85em; margin-top:0">🇦🇹 2. Vision: ÖGS</h3>
+            <ul style="font-size:0.62em">
+                <li>ÖGS hat fast keine Trainingsdaten</li>
+                <li>Sobald die App technisch einwandfrei funktioniert, bauen wir einen kleinen ÖGS-Datensatz auf</li>
+                <li>Erst dann Kontakt zum Gehörlosenverein mit einem <strong>greifbaren Prototyp</strong></li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 6: Risks -->
+<section data-background-color="#0a0a1a">
+    <div class="section-label">Herausforderungen</div>
+    <h2>Realistische <span class="red">Risiken</span></h2>
+    
+    <div class="card" style="margin-bottom: 0.8em; text-align: left;">
+        <h3 style="font-size:0.85em; margin-top:0">📉 1. Erkennungsgenauigkeit (Fehlerkette)</h3>
+        <p style="font-size:0.6em; margin:0">Wenn einzelne Gebärden falsch erkannt werden, sinkt die Genauigkeit ganzer Sätze drastisch ab. <br><span class="green">Lösung:</span> Wir starten mit einem stark reduzierten Vokabular (z.B. 50 wichtige Wörter).</p>
+    </div>
+
+    <div class="card" style="text-align: left;">
+        <h3 style="font-size:0.85em; margin-top:0">🗂️ 2. Fehlende ÖGS-Daten</h3>
+        <p style="font-size:0.6em; margin:0">Die österreichische Gebärdensprache ist kaum digital erfasst.<br><span class="green">Lösung:</span> Wir beweisen die Technik zuerst mit Daten, die es bereits gibt (ASL/DGS). Der Wechsel auf ÖGS folgt, wenn die Architektur steht.</p>
+    </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 7: Team -->
+<section data-background-color="#0a0a1a">
+    <div class="section-label">Umsetzung</div>
+    <h2>Teamaufteilung <span class="accent">(Vorschlag)</span></h2>
+    <div class="grid-3" style="margin-bottom:0.6em; gap:0.6em;">
+        <div class="card" style="padding:1em;">
+            <h3 style="font-size:0.75em; margin-top:0">🧠 ML Vision</h3>
+            <p style="font-size:0.5em; margin:0; color:var(--text-dim);">Trainiert die Hand-Tracking KI</p>
+        </div>
+        <div class="card highlight" style="padding:1em;">
+            <h3 style="font-size:0.75em; margin-top:0">📊 Data</h3>
+            <p style="font-size:0.5em; margin:0; color:var(--text-dim);">Bereitet die Videodaten vor</p>
+        </div>
+        <div class="card" style="padding:1em;">
+            <h3 style="font-size:0.75em; margin-top:0">🎭 NLP & Emotion</h3>
+            <p style="font-size:0.5em; margin:0; color:var(--text-dim);">Satzbildung & Mimik-Erkennung</p>
+        </div>
+    </div>
+    <div class="grid-2" style="gap:0.6em; width: 66%; margin: 0 auto;">
+        <div class="card" style="padding:1em;">
+            <h3 style="font-size:0.75em; margin-top:0">🎨 App Frontend</h3>
+            <p style="font-size:0.5em; margin:0; color:var(--text-dim);">Baut die App & Kamera-Funktion</p>
+        </div>
+        <div class="card" style="padding:1em;">
+            <h3 style="font-size:0.75em; margin-top:0">⚙️ Deployment</h3>
+            <p style="font-size:0.5em; margin:0; color:var(--text-dim);">Bringt das Modell aufs Handy</p>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 8: End -->
+<section class="end-slide" data-background-color="#0a0a1a">
+    <div style="font-size:3em; margin-bottom:0.2em">🤟</div>
+    <h1 style="background: linear-gradient(135deg, #6C63FF, #00D68F); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Signy</h1>
+    <p style="font-size:0.9em; color:var(--text-dim); margin-bottom:1em">
+        Gebärdensprache verstehen.<br>
+        <span class="accent">Barrieren abbauen.</span>
+    </p>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+    Reveal.initialize({
+        hash: true,
+        width: 1280, height: 720,
+        margin: 0.08,
+        transition: 'slide',
+        backgroundTransition: 'fade',
+        controls: true, progress: true
+    });
+</script>
+</body>
+</html>
