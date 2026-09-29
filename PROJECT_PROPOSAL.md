@@ -55,7 +55,7 @@ flowchart LR
 - **Verarbeitung:** Frame-Extraktion (30 FPS Ziel), Bildnormalisierung
 - **Technologie:** Plattform-native Kamera-API (Android: CameraX, iOS: AVFoundation), alternativ Web: WebRTC
 
-#### Komponente 2: Motion Tracking (MediaPipe Holistic)
+#### Komponente 2: Motion Tracking (MediaPipe Holistic / Tasks Vision)
 - **Funktion:** Erkennung von 543 Landmarks (33 Pose, 468 Face Mesh + 52 Blendshapes, 21 pro Hand)
 - **Output:** Normalisierte 3D-Landmark-Koordinaten pro Frame + Facial Blendshape-Koeffizienten (0.0–1.0)
 - **Technologie:** [Google MediaPipe Tasks Vision API](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker)
@@ -66,19 +66,25 @@ flowchart LR
 - **Optimale Auflösung:** VGA (640 × 480) — höhere Auflösungen verschwenden CPU-Zeit ohne Genauigkeitsgewinn
 - **Vorteil:** Läuft vollständig on-device, keine Cloud-Anbindung nötig
 
-> [!NOTE]
-> MediaPipe Holistic kombiniert Hand-Landmarker, Pose-Landmarker und Face-Mesh in einer Pipeline. Für Gebärdensprache sind besonders die **Hand-Landmarks** (21 pro Hand × 3 Koordinaten = 126 Features) und die **Pose-Landmarks** (Arme, Schultern, Oberkörper) relevant. Das **Face-Mesh** liefert 468 Landmarks UND **52 ARKit-kompatible Blendshape-Koeffizienten** — diese werden für Emotionserkennung und grammatische Non-Manual-Marker genutzt.
+> [!TIP]
+> **Optimierung 1: Landmark Dimensionality Pruning (~87% Datenreduktion)**
+> Das Weiterleiten aller 543 Roh-Landmarks (1.629 Koordinaten-Floats) ist für Gebärdenerkennung ineffizient und führt zu Modell-Overfitting (die 468 Gesichts-Mesh-Punkte enthalten z.B. irrelevante Wangen- und Stirnkoordinaten).
+> **Lösung:**
+> - Die 468 Roh-Gesichtspunkte werden für das Gebärdenmodell komplett verworfen.
+> - Verwendet werden: **42 Hand-Landmarks** (126 Floats) + **~10-12 Oberkörper-Pose-Landmarks** (Schultern, Ellbogen, Handgelenke, Nase = ~36 Floats) + **52 Gesichts-Blendshapes** (52 Floats).
+> - **Ergebnis:** Input-Vektor schrumpft von 1.629 auf **~214 Floats pro Frame**! Dies beschleunigt die Transformer-Inferenz massiv, schont den Akku und verhindert thermisches Throttling.
 
 > [!WARNING]
 > **Bekannte Schwächen von MediaPipe bei Gebärdensprache:**
 > 1. **Handkreuzung/Okklusion:** Wenn sich die Hände überlappen (häufig bei zweihandigen Gebärden), verliert das Tracking oft die Links/Rechts-Zuordnung
 > 2. **Monokulare Tiefenambiguität:** Die Z-Achse (Hand 5 cm vs. 15 cm vor der Brust) kann aus einem einzelnen RGB-Bild nicht zuverlässig bestimmt werden
 > 3. **Motion Blur:** Bei schnellen Gesten (>1,5 m/s) kollabieren Finger-Landmarks oder fallen unter den Confidence-Schwellenwert
+> 4. **Modern Tasks Vision Overhead:** Da Google MediaPipe Tasks Vision Face, Hand und Pose in separate Modelle aufgeteilt hat, wird empfohlen, den Face Landmarker mit reduzierter Rate (z.B. 10–15 FPS) auszuführen, während Hand-Tracking mit vollen 30 FPS läuft.
 
 #### Komponente 3: Sign Recognition Model
-- **Input:** Sequenz von Landmark-Vektoren (Sliding Window, z. B. 30-60 Frames)
+- **Input:** Sequenz von Landmark-Vektoren (beschnitten auf ~214 Features pro Frame)
 - **Output:** Erkannte Gebärde (Gloss) oder Gloss-Sequenz
-- **SOTA-Genauigkeit:** 85–93% Top-1 Accuracy bei 250–1.000 Klassen (isoliert)
+- **SOTA-Genauigkeit:** 85–93% Top-1 Accuracy bei 100–250 isolierten Klassen (bei 1.000+ Klassen sinkt reine Pose-Accuracy ohne multimodale Daten auf 60–75%)
 - **Architektur-Optionen:**
 
 | Ansatz | Beschreibung | Pro | Contra |
@@ -89,9 +95,20 @@ flowchart LR
 | **ST-GCN** | Spatio-Temporal Graph Convolution auf Skelett-Daten | Modelliert Skelett-Struktur explizit | Komplexeres Training |
 
 - **Empfehlung:** **1D-CNN + Transformer Encoder** (inspiriert vom Kaggle Google ISLR-Gewinner). Kompakt genug für Mobile, deutlich besser als LSTM. LSTM nur als schneller Fallback-Prototyp.
-- **Normalisierung:** Landmarks zentrieren auf Mitte der Schultern, skalieren nach Schulterbreite (körpergrößen-invariant)
+- **Normalisierung:** Landmarks zentrieren auf Mitte der Schultern, skalieren nach Schulterbreite (körpergrößen-invariant).
+
+> [!TIP]
+> **Optimierung 2: Kinematische Delta- und Geschwindigkeitsvektoren**
+> Koordinaten $(x, y, z)$ allein zeigen nur Positionen. Gebärden werden jedoch primär durch Richtungsvektoren und Beschleunigungen definiert.
+> **Lösung:** An jeden Landmark-Punkt wird die 1. zeitliche Ableitung angehängt ($\Delta x_t = x_t - x_{t-1}$). Das 1D-CNN erhält dadurch sofortige Bewegungsvektoren, ohne Richtungsänderungen mühsam über mehrere Layer rekonstruieren zu müssen.
+
+> [!TIP]
+> **Optimierung 3: Dynamische Gestengrenzen-Erkennung (Motion Energy Trigger)**
+> Ein starres Sliding Window (z.B. fixe 45 Frames) schneidet Gesten oft mitten in der Bewegung ab oder erfasst Pausen zwischen Gebärden (Epenthesis) als Artefakte.
+> **Lösung:** Überwachung der Handgelenks-Geschwindigkeit $v_{\text{wrist}} = \sqrt{\dot{x}^2 + \dot{y}^2}$. Sinkt $v_{\text{wrist}}$ für $\ge 150\text{ ms}$ unter einen Schwellenwert $\tau$, signalisiert dies das natürliche Ende einer Gebärde. Das Modell schneidet das Intervall dynamisch aus und führt gezielt die Klassifikation aus.
+
 - **Isolierte vs. Kontinuierliche Erkennung:**
-  - **Phase 1:** Isolierte Gebärdenerkennung (einzelne Zeichen/Wörter)
+  - **Phase 1:** Isolierte Gebärdenerkennung (einzelne Zeichen/Wörter mit dynamischem Motion-Trigger)
   - **Phase 2:** Kontinuierliche Erkennung (CTC-Loss für nicht-segmentierte Sequenzen)
 
 > [!CAUTION]
@@ -113,12 +130,22 @@ flowchart LR
 | **LLM-Prompting** | Gloss-Sequenz + Emotion als Prompt an LLM (Gemini Flash, etc.) | Sehr flexibel, natürliche Sprache, Few-Shot möglich | Latenz, Cloud-Abhängigkeit, Kosten |
 
 - **Empfehlung:** **Hybridansatz** — ein kleines quantisiertes Seq2Seq-Modell (T5-small / MarianMT, ~30 MB) für schnelle On-Device-Übersetzung, mit optionalem LLM-Fallback (z. B. Gemini Flash API) für komplexe/idiomatische Sätze
-- **Emotionsintegration:** Emotion + Non-Manual-Marker werden als strukturierte Tags eingespeist:
-  - `Input: [ICH, HAUSAUFGABE, VERGESSEN] | Emotion: [SAD] | NMM: [BROW_RAISE]`
-  - `Output: "Habe ich etwa meine Hausaufgaben vergessen?"`
-  - 😊 happy → Intensivierer, `!`-Interpunktion
-  - 😠 angry → „überhaupt nicht!", Verstärkungen
-  - 😢 sad → Modalpartikel (`leider`, `bedauerlicherweise`)
+
+> [!TIP]
+> **Optimierung 4: Constrained Decoding & Halluzinations-Schutz bei LLM-Übersetzung**
+> Unbeschränktes LLM-Prompting neigt dazu, Wörter hinzuzudichten oder Fakten zu halluzinieren, die nie gebärdet wurden.
+> **Lösung:**
+> - Sehr niedrige Temperature ($T \le 0.2$) zur Gewährleistung deterministischer Grammatikbildung.
+> - Strikte Few-Shot Prompts mit Negativ-Beispielen: *„Verwende ausschließlich Bedeutungen der erkannten Glosses. Füge keine zusätzlichen Handlungen oder Personen hinzu."*
+> - Bei On-Device Modellen (T5-small): Constrained Grammar Decoding / Beam Search mit festem Vokabular.
+- **Ablauf (Pause-to-Translate) & Emotionsintegration:** 
+  1. Hände gebärden im Fluss: Wörter werden einzeln im Puffer gesammelt (z. B. `[DU, MITKOMMEN]`).
+  2. Hände ruhen kurz (~0,8s Macro-Pause): Das Satzende wird erkannt, der Token-Puffer schließt sich.
+  3. Gesichtsausdruck (NMM & Emotion) liefert die syntaktische und affektive Bedeutung:
+     - `Input: [DU, MITKOMMEN] | NMM: [NEUTRAL]` ➔ Output: *„Du kommst mit.“* (Einfache Aussage)
+     - `Input: [DU, MITKOMMEN] | NMM: [BROW_RAISE]` (Augenbrauen hoch) ➔ Output: *„Kommst du mit?“* (Ja/Nein-Frage – Satzstellung kehrt sich um)
+     - `Input: [DU, MITKOMMEN] | NMM: [HEAD_SHAKE]` (Kopfschütteln) ➔ Output: *„Du kommst nicht mit.“* (180°-Verneinung – ohne dass ein Handzeichen für „nicht“ existiert!)
+     - `Input: [DU, MITKOMMEN] | Emotion: [HAPPY] | NMM: [BROW_RAISE]` ➔ Output: *„Kommst du etwa wirklich mit?!“* (Begeisterung/Einladung)
 
 #### Komponente 5: Emotionserkennung & Non-Manual-Marker (NMM)
 
@@ -214,37 +241,39 @@ flowchart TD
 | **Backend (optional)** | Firebase / Supabase | Auth, Analytics, Cloud-Fallback |
 | **Training** | Python, PyTorch/TensorFlow, Google Colab | Standard ML-Tooling |
 
-### 5.2 Alternative: Web-Applikation (PWA)
+### 5.2 Entwicklungsstrategie: Web-First Prototyp (PWA) vor nativer App
 
-Falls die Entwicklung nativer Mobile-Apps zu aufwändig ist, kann eine **Progressive Web App** als Alternative dienen:
+Für das MVP (Phase 1) wird **ausdrücklich eine Progressive Web App (PWA)** als primäre Entwicklungsplattform empfohlen, bevor native Frameworks (React Native / Flutter) evaluiert werden:
 
-| Aspekt | Lösung |
-|--------|--------|
-| Kamera | WebRTC / getUserMedia |
-| MediaPipe | @mediapipe/tasks-vision (JavaScript SDK) |
-| ML Runtime | TensorFlow.js / ONNX.js |
-| Frontend | React + TypeScript |
+| Aspekt | Progressive Web App (Phase 1 MVP) | Native Mobile (Phase 2 Expansion) |
+|--------|-----------------------------------|-----------------------------------|
+| **Kamera-Pipeline** | WebRTC / `getUserMedia` (direkte In-Memory Texturen) | CameraX / AVFoundation (plattformspezifisch) |
+| **Bridge-Overhead** | **Keiner** — direkter Zugriff via WebGL / WebGPU | JS/Dart-Bridge Datenkopien kosten oft 10–15 ms |
+| **Motion Tracking** | `@mediapipe/tasks-vision` (Wasm / WebGL) | MediaPipe C++ Android/iOS Wrappers |
+| **ML Runtime** | `onnxruntime-web` (WebGPU) / TensorFlow.js | LiteRT / TensorFlow Lite (TFLite) |
+| **Iterationsspeed** | Sofortiges Live-Reload, kein Build-Stau, DevTools Profiling | Emulatoren, Zertifikate, Native Builds |
 
 > [!TIP]
-> Eine **Web-App als Prototyp** ist deutlich schneller zu entwickeln und zu demonstrieren. Die native Mobile-App kann als Folgeprojekt entstehen. MediaPipe funktioniert hervorragend im Browser.
+> **Optimierung 5: Web-First vermeidet den "Bridge Penalty"**
+> Das Weiterleiten hochauflösender Bilddaten über die React Native- oder Flutter-Bridge erzeugt häufig massive Garbage-Collection- und Serialisierungs-Lags. Mit einer browserbasierten PWA kann das Team die Kernalgorithmen (Tracking, Pruning, Transformer, NLP) sofort ohne Plattform-Reibung testen.
 
 ### 5.3 Echtzeit-Performance: Das 30 FPS Frame-Budget (≤ 33,3 ms)
 
-| Pipeline-Schritt | Geschätzte Latenz |
-|-----------------|-------------------|
-| Kamera-Frame-Einlesen | ~2 ms |
-| MediaPipe Hand + Pose + Face (GPU) | ~12–14 ms |
-| Landmark-Normalisierung & Buffer-Insertion | ~1 ms |
-| SLR-Modell-Inferenz (quantisierter Transformer) | ~4–6 ms |
-| Emotion-Classifier (Blendshape-MLP, CPU) | ~0,4 ms |
-| UI-Rendering / Canvas | ~8 ms |
-| **Gesamt** | **~28 ms → 30 FPS ✅** |
+| Pipeline-Schritt | Geschätzte Latenz | Details & Optimierung |
+|-----------------|-------------------|-----------------------|
+| Kamera-Frame-Einlesen | ~2 ms | VGA 640×480 @ 30 FPS, WebRTC In-Memory Buffer |
+| MediaPipe Tracking (GPU / WebGL) | ~12–14 ms | Hands @ 30 FPS, Face Blendshapes entkoppelt @ 10–15 FPS |
+| Landmark-Pruning & Delta-Vektoren | ~0,5 ms | Reduktion auf ~214 Features + Berechnung von $\Delta x_t$ |
+| SLR-Modell-Inferenz (quantisierter Transformer) | ~3–5 ms | Schnelle Inferenz durch beschnittenen Input (~214 Floats) |
+| Emotion-Classifier (Blendshape-MLP, CPU) | ~0,3 ms | 2-Layer MLP auf 52 Blendshapes (<100 KB) |
+| UI-Rendering / Canvas | ~6–8 ms | Minimales DOM-Rendering, GPU-Canvas |
+| **Gesamt** | **~24–30 ms → 30 FPS ✅** | Puffer für schwächere Geräte vorhanden |
 
 > [!NOTE]
-> **Architektur-Trick: Entkoppelte Ausführung**
-> - MediaPipe Tracking läuft bei **30 FPS** und schreibt in einen Rolling-Window-Buffer (30–60 Frames)
-> - Das SLR-Modell wird **asynchron bei 5–10 Hz** getriggert (oder bei Gestenerkennung, wenn die Handgeschwindigkeit sinkt)
-> - So wird die GPU nicht durch gleichzeitige Tracking- und Inferenz-Aufgaben überlastet
+> **Architektur-Trick: Entkoppelte Ausführung & Dynamischer Trigger**
+> - MediaPipe Tracking läuft kontinuierlich bei **30 FPS** und speist den bereinigten Landmark-Puffer.
+> - Das SLR-Modell rechnet nicht stur jeden Frame, sondern wird **asynchron über Handgelenks-Geschwindigkeit ($v_{\text{wrist}} < \tau$)** oder mit maximal 5–10 Hz getriggert.
+> - Dadurch bleibt die GPU kühl, thermisches Throttling wird verhindert und der Akkuverbrauch sinkt drastisch.
 
 ---
 
@@ -252,12 +281,12 @@ Falls die Entwicklung nativer Mobile-Apps zu aufwändig ist, kann eine **Progres
 
 | # | Risiko | Eintrittswahrscheinlichkeit | Auswirkung | Maßnahme |
 |---|--------|---------------------------|------------|----------|
-| R1 | **Unzureichende Erkennungsgenauigkeit** — Modell erkennt Gebärden nicht zuverlässig | Hoch | Kritisch | Iteratives Training, Daten-Augmentation, Start mit kleinem Vokabular (50-100 Zeichen) |
+| R1 | **Unzureichende Erkennungsgenauigkeit** — Modell erkennt Gebärden nicht zuverlässig | Hoch | Kritisch | **Landmark-Pruning (~214 Features)** gegen Overfitting, **kinematische Delta-Vektoren**, Fokus auf 50–100 isolierte Kerngebärden |
 | R2 | **Fehlende ÖGS-Daten** — Kaum Trainingsdaten für Österreichische Gebärdensprache | Hoch | Hoch | Wir starten mit **ASL/DGS** als Proof of Concept. ÖGS-Daten sammeln wir erst, wenn die Technik funktioniert. |
-| R3 | **Performance auf Mobile** — Echtzeit-Inferenz zu langsam auf Smartphones | Mittel | Hoch | Modell-Quantisierung (INT8), Modell-Pruning, Web-Fallback |
-| R4 | **Komplexität der Satzgenerierung** — Gebärdensprach-Grammatik → Deutsch ist nicht trivial | Hoch | Mittel | Regelbasierter Fallback, LLM-API als Hilfe, zunächst nur Schlüsselwörter statt volle Sätze |
+| R3 | **Performance & Thermal Throttling** — Echtzeit-Inferenz überhitzt mobile SoCs | Mittel | Hoch | **Web-First PWA** mit WebGPU/Wasm, Landmark-Pruning, dynamischer Velocity-Trigger statt Frame-für-Frame-Inferenz |
+| R4 | **Halluzinationen bei Satzgenerierung** — LLM dichtet Bedeutungen hinzu | Hoch | Mittel | **Constrained Prompting**, striktes JSON-Schema, $T \le 0.2$, kompaktes Fine-Tuned T5-small als On-Device Fallback |
 | R5 | **Scope Creep** — Zu viele Features für den Projektzeitraum | Mittel | Hoch | Strikte Priorisierung (MoSCoW), MVP-Fokus |
-| R6 | **Emotionserkennung ungenau** — FER-Modelle haben ~65-70% Accuracy | Mittel | Niedrig | Emotion als optionales Feature, Smoothing über mehrere Frames |
+| R6 | **Emotionserkennung ungenau** — FER-Modelle haben ~65-70% Accuracy | Mittel | Niedrig | Nutzung von **52 ARKit Blendshapes** (invarianter als Rohbilder), Glättung über gleitenden Mittelwert |
 | R7 | **Ethische Bedenken** — Gebärdensprachgemeinschaft empfindet App als inadäquat | Niedrig | Hoch | Kontakt zum Gehörlosenverein wird **erst gesucht, wenn ein funktionierender Prototyp (MVP)** vorliegt. |
 
 > [!CAUTION]
@@ -271,28 +300,28 @@ Falls die Entwicklung nativer Mobile-Apps zu aufwändig ist, kann eine **Progres
 
 ```mermaid
 flowchart TD
-    subgraph MVP ["✅ Phase 1: Proof of Concept"]
-        A["Webcam-basierte Web-App"]
-        B["MediaPipe Hand-Tracking"]
-        C["Isolierte Erkennung\nvon 50-100 Gebärden (ASL/DGS)"]
-        D["Einfache Wort-zu-Text-Ausgabe"]
-        E["Basis-Emotionserkennung\n(3 Klassen: happy/neutral/sad)"]
+    subgraph MVP ["✅ Phase 1: Proof of Concept (Web-First PWA)"]
+        A["Webcam-basierte Web-App (PWA)\nReact + TypeScript + WebGPU/WebGL"]
+        B["MediaPipe Tasks Vision\nHand-Tracking + 52 Blendshapes"]
+        C["Landmark-Pruning (~214 Features)\n+ Kinematische Delta-Vektoren"]
+        D["Dynamischer Velocity-Trigger\nIsolierte Erkennung (50-100 Zeichen ASL/DGS)"]
+        E["Constrained Gloss-to-Text Generierung\n+ 3-Klassen Emotion (happy/neutral/sad)"]
     end
 
     subgraph POST_MVP ["🔮 Phase 2: ÖGS & Expansion"]
         F["Aufbau kleiner ÖGS-Datensatz"]
-        G["Vollständige Satzgenerierung (LLM)"]
+        G["Vollständige Satzgenerierung (On-Device Seq2Seq)"]
         H["Kontakt Gehörlosenverein\n(mit fertigem Prototyp)"]
-        I["Native Mobile App"]
+        I["Native Mobile App\n(React Native / Flutter)"]
     end
 ```
 
 ### MVP-Scope im Detail
 
-1. **Proof of Concept App** (React/Web oder React Native)
-2. **MediaPipe Holistic** für Hand- und Face-Tracking
-3. **Isolierte Gebärdenerkennung** (Fokus auf verfügbare Datensätze wie **ASL oder DGS**, ca. 50 Wörter)
-4. **Einfache Text- und Emotionsausgabe**
+1. **Proof of Concept Web-App (PWA):** Lauffähig im Browser via WebRTC & WebGL/WebGPU (kein nativer Bridge-Overhead).
+2. **Optimierte Feature-Pipeline:** MediaPipe Hand-Tracking + 52 Blendshapes mit **Landmark-Pruning auf ~214 Floats** und Delta-Vektoren.
+3. **Dynamisch getriggerte isolierte Gebärdenerkennung:** Handgelenks-Geschwindigkeits-Trigger für 50–100 Gebärden (Fokus auf ASL/DGS-Datensätze).
+4. **Constrained Satz- und Emotionsausgabe:** Feste Prompt-Restriktionen gegen Halluzinationen.
 5. **Kein verfrühter Kontakt** zum Gehörlosenbund — dieser erfolgt erst, wenn die Architektur validiert ist.
 
 ---
