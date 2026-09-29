@@ -7,10 +7,10 @@ The presentation is built using [reveal.js](https://revealjs.com/) and is contai
 There are two easy ways to start the presentation locally:
 
 ### Option 1: Using the start script (Recommended)
-1. Open your terminal in this directory (`/home/arthur/Documents/syp4/singy`).
+1. Open your terminal in this directory 
 2. Run the provided bash script:
    ```bash
-   ./start_presentation.sh
+   ./documentation/start_presentation.sh
    ```
 3. Open your web browser and navigate to: **http://localhost:8080/pitch.html**
 4. When you are finished, press `Ctrl+C` in the terminal to stop the server
