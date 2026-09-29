@@ -184,7 +184,7 @@
         </div>
     </div>
     <div class="highlight-box fragment" data-fragment-index="5">
-        ⚠️ <strong>Ohne Gesichtserkennung ist Gebärdensprach-KI unmöglich:</strong> Die KI könnte sonst nicht einmal zwischen einem JA, einem NEIN oder einer FRAGE unterscheiden!
+        ⚠️ <strong>Ohne Gesichtserkennung ist Gebärdensprach-KI stark eingeschränkt:</strong> Die KI könnte sonst nicht einmal eine FRAGE erkennen!
     </div>
 </section>
 
@@ -240,29 +240,49 @@
 <!-- SLIDE 7: Team -->
 <section data-background-color="#0a0a1a">
     <div class="section-label">Umsetzung</div>
-    <h2>Teamaufteilung <span class="accent">(Vorschlag)</span></h2>
-    <div class="grid-3" style="margin-bottom:0.6em; gap:0.6em;">
-        <div class="card" style="padding:1em;">
-            <h3 style="font-size:0.75em; margin-top:0">🧠 ML Vision</h3>
-            <p style="font-size:0.5em; margin:0; color:var(--text-dim);">Trainiert die Hand-Tracking KI</p>
+    <h2>Teamaufteilung <span class="accent">(5 Personen)</span></h2>
+    
+    <div class="grid-3" style="gap: 0.8em; margin-top: 1em;">
+        <!-- Säule 1 -->
+        <div class="card highlight" style="padding: 1.1em 0.9em;">
+            <div style="font-size: 1.8em; margin-bottom: 0.2em;">🖐️ 📊</div>
+            <h3 style="font-size: 0.8em; margin: 0 0 0.2em 0;">Person 1 & 2</h3>
+            <p style="font-size: 0.58em; margin: 0 0 0.6em 0; color: var(--green); font-weight: 700;">Vision & Data (ÖGS)</p>
+            <ul style="font-size: 0.48em; line-height: 1.5; color: var(--text-dim);">
+                <li>MediaPipe Kamera-Pipeline</li>
+                <li>Daten-Diät (Pruning auf ~214 Punkte)</li>
+                <li>30-FPS-Tempo-Optimierung</li>
+                <li>Aufnahme der 50 ÖGS-Gebärden</li>
+                <li>Datensatz-Vervielfachung (Augmentation)</li>
+            </ul>
         </div>
-        <div class="card highlight" style="padding:1em;">
-            <h3 style="font-size:0.75em; margin-top:0">📊 Data</h3>
-            <p style="font-size:0.5em; margin:0; color:var(--text-dim);">Bereitet die Videodaten vor</p>
+        
+        <!-- Säule 2 -->
+        <div class="card highlight" style="padding: 1.1em 0.9em;">
+            <div style="font-size: 1.8em; margin-bottom: 0.2em;">🧠 🎭</div>
+            <h3 style="font-size: 0.8em; margin: 0 0 0.2em 0;">Person 3 & 4</h3>
+            <p style="font-size: 0.58em; margin: 0 0 0.6em 0; color: var(--accent-light); font-weight: 700;">KI & Gesten / NLP & Mimik</p>
+            <ul style="font-size: 0.48em; line-height: 1.5; color: var(--text-dim);">
+                <li>Neuronales Netz für Handbewegungen</li>
+                <li>Gesten-Pause-Erkennung (GAD)</li>
+                <li>Gesichtsmuskel-Analyse (Frage/Verneinung)</li>
+                <li>Satzbau-KI ohne Halluzinationen</li>
+                <li>Spracheingabe für Hörende (STT)</li>
+            </ul>
         </div>
-        <div class="card" style="padding:1em;">
-            <h3 style="font-size:0.75em; margin-top:0">🎭 NLP & Emotion</h3>
-            <p style="font-size:0.5em; margin:0; color:var(--text-dim);">Satzbildung & Mimik-Erkennung</p>
-        </div>
-    </div>
-    <div class="grid-2" style="gap:0.6em; width: 66%; margin: 0 auto;">
-        <div class="card" style="padding:1em;">
-            <h3 style="font-size:0.75em; margin-top:0">🎨 App Frontend</h3>
-            <p style="font-size:0.5em; margin:0; color:var(--text-dim);">Baut die App & Kamera-Funktion</p>
-        </div>
-        <div class="card" style="padding:1em;">
-            <h3 style="font-size:0.75em; margin-top:0">⚙️ Deployment</h3>
-            <p style="font-size:0.5em; margin:0; color:var(--text-dim);">Bringt das Modell aufs Handy</p>
+        
+        <!-- Säule 3 -->
+        <div class="card" style="padding: 1.1em 0.9em;">
+            <div style="font-size: 1.8em; margin-bottom: 0.2em;">🎨 🔊</div>
+            <h3 style="font-size: 0.8em; margin: 0 0 0.2em 0;">Person 5</h3>
+            <p style="font-size: 0.58em; margin: 0 0 0.6em 0; color: var(--orange); font-weight: 700;">Frontend & App</p>
+            <ul style="font-size: 0.48em; line-height: 1.5; color: var(--text-dim);">
+                <li>React-Benutzeroberfläche (Web App)</li>
+                <li>Kamera-Stream-Handling & UI-Design</li>
+                <li>Audio-Sprachausgabe (Text-to-Speech)</li>
+                <li>Zwei-Wege-Kommunikationsfluss</li>
+                <li>Praxistests & Integration</li>
+            </ul>
         </div>
     </div>
 </section>
