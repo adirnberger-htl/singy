@@ -2,5 +2,5 @@
 A list of tasks to do
 ## Important  
 - [ ] Decide on branching strategy
-- [ ] Decidde on project struktur
+- [ ] Decide on project structure
 - [ ] Add more TODO entries
