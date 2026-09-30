@@ -1,37 +1,65 @@
-# Signy - Pitch Presentation
+# Signy
 
-The presentation is built using [reveal.js](https://revealjs.com/) and is contained entirely within `pitch.html`. Because it uses local files and requires standard web security permissions, it is best viewed via a local web server.
+Real-time Austrian Sign Language (ÖGS) translation system providing bidirectional communication between deaf and hearing users.
 
-## 🚀 How to Start the Presentation
+Signy tracks hand gestures and facial expressions simultaneously using computer vision. Captured signs are mapped to text and speech, while spoken responses from hearing partners are transcribed back to text.
 
-There are two easy ways to start the presentation locally:
+## Features
 
-### Option 1: Using the start script (Recommended)
-1. Open your terminal in this directory 
-2. Run the provided bash script:
-   ```bash
-   ./documentation/start_presentation.sh
-   ```
-3. Open your web browser and navigate to: **http://localhost:8080/pitch.html**
-4. When you are finished, press `Ctrl+C` in the terminal to stop the server
+- **Multimodal recognition:** Captures hand positions for vocabulary and facial expressions / head tilt for grammar (questions, negation, emphasis).
+- **Bidirectional communication:**
+  - Deaf to hearing: Camera input -> sign recognition -> sentence generation -> text/TTS output.
+  - Hearing to deaf: Microphone input -> speech-to-text -> on-screen display.
+- **Form factors:**
+  - Counter mode: Stationary mount for service desks, healthcare, and classrooms.
+  - Partner mode: Mobile device held by hearing conversation partner.
+- **Landmark pruning:** Reduces MediaPipe tracking data down to 42 hand points, 12 pose points, and 52 facial blendshape coefficients to maintain 30 FPS processing on consumer hardware.
 
-### Option 2: Using Python directly
-If you prefer not to use the script, you can start Python's built-in HTTP server directly:
-1. Open your terminal in this directory.
-2. Run the following command:
-   ```bash
-   python3 -m http.server 8080
-   ```
-3. Open your web browser and navigate to: **http://localhost:8080/pitch.html**
+## Architecture
 
----
+```mermaid
+flowchart LR
+    A["Camera (30 FPS)"] --> B["Tracking & Pruning\n(MediaPipe Tasks)"]
+    B --> C["Hand Sign Stream"]
+    B --> D["Facial Blendshapes"]
+    C & D --> E["Gesture Activity Detection\n(~0.8s pause threshold)"]
+    E --> F["Sentence Synthesis\n(German grammar formatting)"]
+    F --> G["Text & Audio Output"]
+```
 
-## ⌨️ Presentation Controls
+### Pipeline Overview
 
-Once the presentation is open in your browser, you can control it using your keyboard:
+1. **Input & Tracking:** 640x480 video captured at 30 FPS via WebRTC. Landmark tracking extracts essential hand, upper-body pose, and facial blendshapes.
+2. **Gesture Activity Detection (GAD):** Movements are buffered as tokens. A resting pause (~0.8 seconds) triggers sentence segmentation.
+3. **Non-Manual Marker (NMM) Analysis:** Head orientation and facial blendshapes determine statement type (affirmation, question, negation).
+4. **Sentence Construction:** Translates token sequences into grammatically complete German sentences using constrained decoding to prevent hallucinated content.
 
-* **Next Slide**: `Spacebar`, `Right Arrow`, or `Page Down`
-* **Previous Slide**: `Left Arrow` or `Page Up`
-* **Overview Mode (Zoom Out)**: `Esc` (Press `Esc` again or click a slide to zoom back in)
-* **Full Screen**: `F`
-* **Toggle Speaker Notes**: `S` (Opens a pop-up window with timer and notes, if added)
+## Tech Stack
+
+- **Application:** React (PWA)
+- **Computer Vision:** MediaPipe Tasks, WebRTC
+- **Inference:** Transformer sequence model, Blendshape MLP
+- **Language / Audio:** Lightweight NLP model, Web Speech API / TTS
+
+## Repository Layout
+
+- `docs/` - Project proposal, specifications, and architecture notes
+- `openspec/` - Change proposals and specifications
+- `pitch/` - Project presentation slides (`pitch.html`)
+- `prompts/` - Team backlog configurations and task templates
+
+## Pitch Presentation
+
+The project presentation is located in `pitch/`. Run locally:
+
+```bash
+./pitch/start_presentation.sh
+```
+
+Or start a local HTTP server manually:
+
+```bash
+python3 -m http.server 8080
+```
+
+Navigate to `http://localhost:8080/pitch/pitch.html`.
