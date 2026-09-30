@@ -41,11 +41,11 @@
         .title-slide { text-align: center !important; }
         .title-slide h1 { font-size: 4em; background: linear-gradient(135deg, #6C63FF, #00D68F); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.1em; }
         .title-slide .subtitle { font-size: 1.1em; color: var(--text-dim); font-weight: 300; margin-bottom: 1.5em; }
-        
+
         /* Cards */
         .card { background: var(--bg-card); border: 1px solid rgba(108, 99, 255, 0.2); border-radius: 16px; padding: 1.2em 1.5em; backdrop-filter: blur(10px); }
         .card.highlight { border-color: var(--accent); box-shadow: 0 0 30px var(--accent-glow); }
-        
+
         /* Grids */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; align-items: start; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8em; align-items: start; }
@@ -69,7 +69,7 @@
         .pl-title { font-weight: 800; font-size: 0.75em; color: #fff; margin-bottom: 0.4em; line-height: 1.1; }
         .pl-desc { font-size: 0.5em; color: var(--text-dim); line-height: 1.4; }
         .pl-arrow { color: var(--accent); font-size: 1.5em; font-weight: 900; }
-        
+
         .pl-stack { display: flex; flex-direction: column; gap: 0.8em; width: 25%; }
         .pl-stack .pl-box { width: 100%; padding: 0.8em 0.5em; }
         .pl-stack .pl-icon { font-size: 1.6em; }
@@ -107,7 +107,7 @@
             <p style="font-size:0.72em; margin:0">Alltägliche Situationen werden zur <span class="red">Hürde</span>. Dolmetscher sind teuer und im Alltag nicht immer verfügbar.</p>
         </div>
     </div>
-  
+
 </section>
 
 <!-- ============================================ -->
@@ -115,7 +115,7 @@
 <section data-background-color="#0a0a1a">
     <div class="section-label">Funktionsweise</div>
     <h2>Wie Signy übersetzt: <span class="green">Schritt für Schritt</span></h2>
-    
+
     <div class="pipeline-container">
         <!-- 1. Tracking -->
         <div class="pl-box">
@@ -123,27 +123,27 @@
             <div class="pl-title">1. Wörter mitlesen</div>
             <div class="pl-desc">Kamera scannt Hände live und sammelt Gebärden<br><em>(z. B. "DU", "MITKOMMEN")</em></div>
         </div>
-        
+
         <div class="pl-arrow">→</div>
-        
+
         <!-- 2. Pause -->
         <div class="pl-box accent-box">
             <span class="pl-icon">⏸️</span>
             <div class="pl-title">2. Pause abwarten</div>
             <div class="pl-desc">Hände ruhen kurz (~0.8s)?<br>➔ Signal: Satz ist fertig,<br>jetzt übersetzen!</div>
         </div>
-        
+
         <div class="pl-arrow">→</div>
-        
+
         <!-- 3. Mimik -->
         <div class="pl-box accent-box">
             <span class="pl-icon">🎭</span>
             <div class="pl-title">3. Mimik prüfen</div>
             <div class="pl-desc">Gesicht liefert die Grammatik:<br>Aussage, Frage oder<br>Verneinung?</div>
         </div>
-        
+
         <div class="pl-arrow">→</div>
-        
+
         <!-- 4. NLP -->
         <div class="pl-box orange-box">
             <span class="pl-icon">💬</span>
@@ -162,7 +162,7 @@
 <section data-background-color="#0a0a1a">
     <div class="section-label">Warum Mimik unverzichtbar ist</div>
     <h2>Das Gesicht macht die <span class="accent">Grammatik</span></h2>
-    
+
     <p style="font-size: 0.7em; margin-bottom:0.5em;">Exakt die gleichen Handbewegungen: <strong>[DU] · [MITKOMMEN]</strong>. Erst das Gesicht entscheidet über den Sinn:</p>
 
     <div class="card highlight" style="margin: 0.8em 0; padding: 1em;">
@@ -214,30 +214,7 @@
 </section>
 
 <!-- ============================================ -->
-<!-- SLIDE 6: Risks -->
-<section data-background-color="#0a0a1a">
-    <div class="section-label">Herausforderungen</div>
-    <h2>Realistische <span class="red">Risiken & Lösungen</span></h2>
-    
-    <div class="grid-2" style="margin-bottom: 0.8em;">
-        <div class="card" style="text-align: left;">
-            <h3 style="font-size:0.8em; margin-top:0">📉 1. Genauigkeit & Satzbau</h3>
-            <p style="font-size:0.58em; margin:0">Falsch erkannte Wörter machen Sätze unbrauchbar.<br><span class="green">Lösung:</span> Fokus auf 50 Kernwörter und intelligenter Pause-Filter.</p>
-        </div>
-        <div class="card" style="text-align: left;">
-            <h3 style="font-size:0.8em; margin-top:0">⚡ 2. Reaktionszeit & Akku</h3>
-            <p style="font-size:0.58em; margin:0">Dauernde Bildanalyse überlastet mobile Geräte.<br><span class="green">Lösung:</span> KI rechnet gezielt, wenn Hände eine Pause machen.</p>
-        </div>
-    </div>
-
-    <div class="card" style="text-align: left;">
-        <h3 style="font-size:0.8em; margin-top:0">🗂️ 3. Fehlende ÖGS-Daten & Phantasie-Sätze</h3>
-        <p style="font-size:0.58em; margin:0">ÖGS kaum erfasst; Sprachmodelle dichten gerne Worte hinzu.<br><span class="green">Lösung:</span> Start mit ASL/DGS-Daten; Übersetzung streng auf die erkannten Gebärden begrenzen (Null Halluzination).</p>
-    </div>
-</section>
-
-<!-- ============================================ -->
-<!-- SLIDE 7: End -->
+<!-- SLIDE 6: End -->
 <section class="end-slide" data-background-color="#0a0a1a">
     <div style="font-size:3em; margin-bottom:0.2em">🤟</div>
     <h1 style="background: linear-gradient(135deg, #6C63FF, #00D68F); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Signy</h1>
