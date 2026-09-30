@@ -1,0 +1,50 @@
+name: User Story
+description: Create a new user story for the backlog
+title: "[USER STORY] "
+labels: ["user-story"]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: User Story
+      description: "As a [person] I want to [do thing] because [reason]."
+      placeholder: "As a deaf user I want to see real-time translations because..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: "What needs to be done for this story to be considered complete?"
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Effort Estimation
+      options:
+        - "1 - Very Low"
+        - "2 - Low"
+        - "3 - Medium"
+        - "4 - High"
+        - "5 - Fucking Huge"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - "1 - Low"
+        - "2 - Below Normal"
+        - "3 - Normal"
+        - "4 - High"
+        - "5 - Critical"
+    validations:
+      required: true
