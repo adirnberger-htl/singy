@@ -5,7 +5,7 @@ PORT=8080
 
 echo "🚀 Starting Signy Pitch Presentation..."
 echo "🌐 Server running on http://localhost:$PORT"
-echo "👉 Open http://localhost:$PORT/pitch.html in your web browser."
+echo "👉 Open http://localhost:$PORT/pitch/pitch.html in your web browser."
 echo "🛑 Press Ctrl+C to stop the server."
 echo ""
 
