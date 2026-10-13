@@ -19,7 +19,7 @@ Signy tracks hand gestures and facial expressions simultaneously using computer 
 
 ```mermaid
 flowchart LR
-    A["Camera (30 FPS)"] --> B["Tracking & Pruning\n(MediaPipe Tasks)"]
+    A["Camera (30 FPS)"] --> B ["Tracking & Pruning\n(MediaPipe Tasks)"]
     B --> C["Hand Sign Stream"]
     B --> D["Facial Blendshapes"]
     C & D --> E["Gesture Activity Detection\n(~0.8s pause threshold)"]
