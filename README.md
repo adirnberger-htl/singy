@@ -47,3 +47,4 @@ flowchart LR
 - `openspec/` - Change proposals and specifications
 - `pitch/` - Project presentation slides (`pitch.html`)
 - `prompts/` - Team backlog configurations and task templates
+- 
